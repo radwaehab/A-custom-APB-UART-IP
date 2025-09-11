@@ -1,9 +1,9 @@
 module uart_rx (
     input  wire        clk,
-    //input  wire        rst,///////////
+    //input  wire        rst,
     input  wire        arst_n,
     input  wire        rx_en,
-    input  wire [31:0] baud_div, //////////??? txbaudrate *16
+    input  wire [31:0] baud_div,
     input  wire        rx_serial,
 
 
@@ -142,3 +142,4 @@ module uart_rx (
     end
 
 endmodule
+
