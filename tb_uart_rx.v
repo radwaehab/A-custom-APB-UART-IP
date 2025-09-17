@@ -1,30 +1,30 @@
-// dv/tb_uart_rx.v
 `timescale 1ns / 1ps
 
 module tb_uart_rx;
 
-    // Inputs
     reg        clk;
     reg        arst_n;
     reg        rx_en;
     reg [31:0] baud_div;
     reg        rx_serial;
 
-    // Outputs
+   
     wire [7:0] rx_data_out;
     wire       rx_busy;
     wire       rx_done_tick;
     wire       rx_error;
     
-    // Testbench helper variables
-    integer i;
-    // **FIX:** Declare a register to hold data for bit-wise access.
-    reg [7:0] temp_data; 
+    //helper variables
+    integer i =0;
+    integer error_count = 0;
+    integer correct_count = 0;
+    //Declare a register to hold data for bit-wise access.
+    reg [7:0] temp_data =0; 
     
     // Baud period for testbench
-    localparam BIT_PERIOD = 104167; // 1/9600 in ns
+    localparam BIT_PERIOD = 104167; // 1/9600  ns
 
-    // Instantiate the DUT
+    //the DUT
     uart_rx dut (
         .clk(clk),
         .arst_n(arst_n),
@@ -37,16 +37,15 @@ module tb_uart_rx;
         .rx_error(rx_error)
     );
 
-    // Clock Generation (100 MHz)
+    // Clock Generation 100 MHz
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
     end
 
-    // Task to send a byte (This was already correct)
+    // Task to send a byte 
     task send_byte;
         input [7:0] data;
-        integer i;
         begin
             // Start bit
             rx_serial = 0;
@@ -75,8 +74,8 @@ module tb_uart_rx;
         #20;
         arst_n = 1;
         #20;
-
-        rx_en = 1; // Enable receiver
+        assert_reset();
+        rx_en = 1; 
         $display("Receiver enabled.");
 
         // Send byte 0xA5
@@ -92,7 +91,7 @@ module tb_uart_rx;
         // Send byte 0x5A with a framing error
         $display("Sending byte 0x5A with framing error...");
         
-        // **FIX:** First, load the literal value into our temp register.
+        // load the literal value into our temp register.
         temp_data = 8'h5A;
         
         // Start bit
@@ -101,12 +100,12 @@ module tb_uart_rx;
         
         // Data bits
         for (i = 0; i < 8; i = i + 1) begin
-            // **FIX:** Now, index the register variable, not the literal.
+            //index the register variable
             rx_serial = temp_data[i];
             #(BIT_PERIOD);
         end
         
-        // Stop bit (incorrectly set to 0)
+        // Stop bit
         rx_serial = 0;
         #(BIT_PERIOD);
         rx_serial = 1; // Return to idle
@@ -115,9 +114,40 @@ module tb_uart_rx;
         $display("Received data: 0x%h, Error: %b", rx_data_out, rx_error);
         if (rx_error) $display("SUCCESS: Framing error detected.");
         else $display("FAILURE: Framing error not detected.");
+        check_result(1'b1, 1'b0, 1'b1);
 
         $display("Test Finished.");
-        $finish;
+        $stop;
     end
 
+//assert reset task
+task assert_reset;
+    begin 
+        arst_n = 0;
+        @(negedge clk);
+        if (rx_serial !== 1'b1 || rx_busy !== 1'b0 || rx_done_tick !== 1'b0) begin
+            $display("Reset failed: rx_serial=%b, rx_busy=%b, rx_done_tick=%b", rx_serial, rx_busy, rx_done_tick);
+            error_count = error_count + 1;
+        end else begin
+            $display("Reset successful.");
+            correct_count = correct_count + 1;
+        end
+        arst_n = 1;
+    end
+endtask
+
+//check result task
+task check_result(input expected_serial, input expected_busy, input expected_done);
+    begin
+        if (rx_serial !== expected_serial || rx_busy !== expected_busy || rx_done_tick !== expected_done) begin
+            $display("Check failed: rx_serial=%b (expected %b), rx_busy=%b (expected %b), rx_done_tick=%b (expected %b)", 
+                     rx_serial, expected_serial, rx_busy, expected_busy, rx_done_tick, expected_done);
+            error_count = error_count + 1;
+        end else begin
+            $display("Check successful: rx_serial=%b, rx_busy=%b, rx_done_tick=%b", rx_serial, rx_busy, rx_done_tick);
+            correct_count = correct_count + 1;
+        end
+    end
+endtask
 endmodule
+
