@@ -1,6 +1,3 @@
-// src/apb_uart_wrapper.v
-// APB Slave Wrapper for the UART Core
-
 module apb_uart_wrapper (
     // APB Slave Interface
     input  wire        PCLK,
@@ -18,12 +15,12 @@ module apb_uart_wrapper (
     input  wire        uart_rx_in
 );
 
-    // Register Address Map (using word offsets)
+    // Register Address Map 
     localparam ADDR_CTRL   = 2'b00; // 0x0000
     localparam ADDR_STATS  = 2'b01; // 0x0004
     localparam ADDR_TXDATA = 2'b10; // 0x0008
     localparam ADDR_RXDATA = 2'b11; // 0x000C
-    localparam ADDR_BAUDIV = 3'b100; // 0x0010 (BONUS)
+    localparam ADDR_BAUDIV = 3'b100; // 0x0010 
 
     // Internal Registers
     reg [31:0] ctrl_reg;
@@ -36,7 +33,7 @@ module apb_uart_wrapper (
     wire rx_busy_w, rx_done_tick_w, rx_error_w;
     reg  rx_done_status; // Latched version of rx_done
 
-    // --- APB Logic ---
+    //   APB Logic
     wire psel_and_penable = PSEL & PENABLE;
 
     // Write Logic
@@ -85,7 +82,6 @@ module apb_uart_wrapper (
     end
     assign tx_en_pulse = ~tx_en_bit_d1 & tx_en_bit;
 
-    // rx_done status bit logic
     // Set on tick, clear on RX_DATA read
     wire rx_data_read = psel_and_penable && !PWRITE && (PADDR[3:2] == ADDR_RXDATA);
     always @(posedge PCLK or negedge PRESETn) begin
@@ -132,5 +128,6 @@ module apb_uart_wrapper (
         .rx_done_tick(rx_done_tick_w),
         .rx_error(rx_error_w)
     );
+
 
 endmodule
