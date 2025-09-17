@@ -1,8 +1,6 @@
-// dv/tb_uart_tx.v
 `timescale 1ns / 1ps
 
 module tb_uart_tx;
-
 
     reg        clk;
     reg        arst_n;
